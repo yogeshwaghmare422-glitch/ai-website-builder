@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum LedgerType {
+  SIGNUP
+  GENERATION
+  PURCHASE
+  ADMIN_GRANT
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         Role         @default(USER)
+  credits      Int          @default(5)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  websites     Website[]
+  ledger       CreditLedger[]
+  payments     Payment[]
+}
+
+model Website {
+  id        String   @id @default(cuid())
+  title     String
+  prompt    String
+  html      String   @db.Text
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model CreditLedger {
+  id        String     @id @default(cuid())
+  amount    Int
+  type      LedgerType
+  note      String?
+  createdAt DateTime   @default(now())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  stripeCheckoutSession String   @unique
+  stripeEventId         String?  @unique
+  amount                Int
+  currency              String
+  credits               Int
+  status                String   @default("PENDING")
+  createdAt             DateTime @default(now())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
